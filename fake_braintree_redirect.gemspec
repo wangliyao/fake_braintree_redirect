@@ -18,6 +18,7 @@ Gem::Specification.new do |s|
 
   # s.add_dependency "jquery-rails"
   s.add_dependency 'rack'
+  s.add_dependency 'braintree', '2.22.0'
 
   s.add_development_dependency "sqlite3"
   s.add_development_dependency "rack-test"

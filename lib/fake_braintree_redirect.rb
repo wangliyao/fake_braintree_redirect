@@ -12,18 +12,9 @@ class FakeBraintreeRedirect
         tr_data = request.params["tr_data"]
         tr_data_params = Rack::Utils.parse_nested_query(tr_data.split("|").last)
 
-        # Massage redirect_url, add Braintree parameters.
-        uri = URI.parse(tr_data_params["redirect_url"])
-        existing_query = Rack::Utils.parse_nested_query(uri.query)
-        query = existing_query.merge(
-          :http_status => 200,
-          :id => "a_fake_id",
-          :kind => "create_transaction",
-          :hash => "a_fake_hash"
-        )
-        uri.query = Rack::Utils.build_query(query)
+        url = build_url(tr_data_params["redirect_url"])
         headers = {}
-        headers["Location"] = uri.to_s
+        headers["Location"] = url.to_s
 
         [303, headers, ["See other"]]
       else
@@ -32,5 +23,20 @@ class FakeBraintreeRedirect
     else
       @app.call(env)
     end
+  end
+
+  def build_url(url)
+    # Massage redirect_url, add Braintree parameters.
+    uri = URI.parse(url)
+    existing_query = Rack::Utils.parse_nested_query(uri.query)
+    query = existing_query.merge(
+      :http_status => 200,
+      :id => "a_fake_id",
+      :kind => "create_transaction",
+    )
+    query_string = Rack::Utils.build_query(query)
+    hash = ::Braintree::Digest.hexdigest(Braintree::Configuration.private_key, query_string)
+    uri.query = Rack::Utils.build_query(query.merge(:hash => hash))
+    uri
   end
 end

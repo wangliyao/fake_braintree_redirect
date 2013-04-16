@@ -2,12 +2,19 @@ require 'pry'
 require 'rack/test'
 require 'fake_braintree_redirect'
 require 'minitest/autorun'
+require 'braintree'
+# Needs to be defined so that hash parameter can be correctly defined
+Braintree::Configuration.environment = :sandbox
+Braintree::Configuration.merchant_id = "fake"
+Braintree::Configuration.public_key = "fake"
+Braintree::Configuration.private_key = "fake"
 
 class DummyApp
   def call(env)
     [200, {}, ["OK"]]
   end
 end
+
 
 describe FakeBraintreeRedirect do
   include Rack::Test::Methods
@@ -59,15 +66,15 @@ describe FakeBraintreeRedirect do
   it "makes a successful request" do
     post '/merchants/fake/transparent_redirect_requests', transaction_data, env
     last_response.status.must_equal 303
-    uri = URI.parse(tr_data[:redirect_url])
-    query = {
-      :http_status => 200,
-      :id => "a_fake_id",
-      :kind => "create_transaction",
-      :hash => "a_fake_hash"
-    }
-    uri.query = Rack::Utils.build_query(query)
-    last_response.headers["Location"].must_equal uri.to_s
+
+    location = last_response.headers["Location"]
+    location.must_include tr_data[:redirect_url]
+
+    query = Rack::Utils.parse_query(location.split("?").last)
+    query["http_status"].must_equal "200"
+    query["id"].must_equal "a_fake_id"
+    query["kind"].must_equal "create_transaction"
+    query["hash"].length.must_equal 40
   end
 
   it "works with redirect_urls that contain query parmaeters" do
@@ -75,16 +82,15 @@ describe FakeBraintreeRedirect do
     new_tr_data[:redirect_url] = "http://example.com/braintree?plan_id=1"
     post '/merchants/fake/transparent_redirect_requests', transaction_data(new_tr_data), env
     last_response.status.must_equal 303
-    uri = URI.parse(tr_data[:redirect_url])
-    query = {
-      :plan_id => 1,
-      :http_status => 200,
-      :id => "a_fake_id",
-      :kind => "create_transaction",
-      :hash => "a_fake_hash"
-    }
-    uri.query = Rack::Utils.build_query(query)
-    last_response.headers["Location"].must_equal uri.to_s
+    location = last_response.headers["Location"]
+    location.must_include tr_data[:redirect_url]
+
+    query = Rack::Utils.parse_query(location.split("?").last)
+    query["http_status"].must_equal "200"
+    query["id"].must_equal "a_fake_id"
+    query["kind"].must_equal "create_transaction"
+    query["hash"].length.must_equal 40
+    query["plan_id"].must_equal "1"
   end
 
   it "falls back to main app when not POST" do
