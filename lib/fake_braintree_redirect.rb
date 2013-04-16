@@ -16,7 +16,7 @@ class FakeBraintreeRedirect
         uri = URI.parse(tr_data_params["redirect_url"])
         existing_query = Rack::Utils.parse_nested_query(uri.query)
         query = existing_query.merge(
-          :http_status => 202,
+          :http_status => 200,
           :id => "a_fake_id",
           :kind => "create_transaction",
           :hash => "a_fake_hash"

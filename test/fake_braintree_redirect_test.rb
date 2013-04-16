@@ -61,7 +61,7 @@ describe FakeBraintreeRedirect do
     last_response.status.must_equal 303
     uri = URI.parse(tr_data[:redirect_url])
     query = {
-      :http_status => 202,
+      :http_status => 200,
       :id => "a_fake_id",
       :kind => "create_transaction",
       :hash => "a_fake_hash"
@@ -78,7 +78,7 @@ describe FakeBraintreeRedirect do
     uri = URI.parse(tr_data[:redirect_url])
     query = {
       :plan_id => 1,
-      :http_status => 202,
+      :http_status => 200,
       :id => "a_fake_id",
       :kind => "create_transaction",
       :hash => "a_fake_hash"
