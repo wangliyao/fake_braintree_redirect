@@ -39,7 +39,7 @@ describe FakeBraintreeRedirect do
     }
   end
 
-  def transaction_data
+  def transaction_data(tr_data=tr_data())
     {
       :transaction => {
         :customer => {
@@ -61,6 +61,23 @@ describe FakeBraintreeRedirect do
     last_response.status.must_equal 303
     uri = URI.parse(tr_data[:redirect_url])
     query = {
+      :http_status => 202,
+      :id => "a_fake_id",
+      :kind => "create_transaction",
+      :hash => "a_fake_hash"
+    }
+    uri.query = Rack::Utils.build_query(query)
+    last_response.headers["Location"].must_equal uri.to_s
+  end
+
+  it "works with redirect_urls that contain query parmaeters" do
+    new_tr_data = tr_data.clone
+    new_tr_data[:redirect_url] = "http://example.com/braintree?plan_id=1"
+    post '/merchants/fake/transparent_redirect_requests', transaction_data(new_tr_data), env
+    last_response.status.must_equal 303
+    uri = URI.parse(tr_data[:redirect_url])
+    query = {
+      :plan_id => 1,
       :http_status => 202,
       :id => "a_fake_id",
       :kind => "create_transaction",
