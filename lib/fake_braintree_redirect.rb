@@ -7,12 +7,12 @@ class FakeBraintreeRedirect
 
   def call(env)
     request = Rack::Request.new(env)
-    if env["SERVER_NAME"] == "sandbox.braintreegateway.com" && request.post?
+    if env['SERVER_NAME'] == "sandbox.braintreegateway.com" && request.post?
       if /merchants\/.*?\/transparent_redirect_requests/.match(env["PATH_INFO"])
         tr_data = request.params["tr_data"]
         tr_data_params = Rack::Utils.parse_nested_query(tr_data.split("|").last)
 
-        url = build_url(tr_data_params["redirect_url"])
+        url = build_url(tr_data_params["redirect_url"], tr_data_params["kind"])
         headers = {}
         headers["Location"] = url.to_s
 
@@ -25,14 +25,14 @@ class FakeBraintreeRedirect
     end
   end
 
-  def build_url(url)
+  def build_url(url, kind)
     # Massage redirect_url, add Braintree parameters.
     uri = URI.parse(url)
     existing_query = Rack::Utils.parse_nested_query(uri.query)
     query = existing_query.merge(
       :http_status => 200,
       :id => "a_fake_id",
-      :kind => "create_transaction",
+      :kind => kind 
     )
     query_string = Rack::Utils.build_query(query)
     hash = ::Braintree::Digest.hexdigest(Braintree::Configuration.private_key, query_string)

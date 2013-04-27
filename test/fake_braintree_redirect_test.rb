@@ -32,7 +32,7 @@ describe FakeBraintreeRedirect do
     { "SERVER_NAME" => "sandbox.braintreegateway.com" }
   end
 
-  def tr_data
+  def transaction_tr_data
     {
       :api_version => '3',
       :kind => "create_transaction",
@@ -46,7 +46,7 @@ describe FakeBraintreeRedirect do
     }
   end
 
-  def transaction_data(tr_data=tr_data())
+  def transaction_data(tr_data=transaction_tr_data())
     {
       :transaction => {
         :customer => {
@@ -63,12 +63,36 @@ describe FakeBraintreeRedirect do
     }
   end
 
-  it "makes a successful request" do
+  def credit_card_tr_data
+    {
+      :api_version => '3',
+      :kind => "create_payment_method",
+      :public_key => "fake",
+      :redirect_url => "http://example.com/braintree",
+      :time => Time.now.strftime("%Y%m%d%H%M%s"),
+      :credit_card => {
+        :customer_id => "1",
+      }
+    }
+  end
+
+  def credit_card_data
+    {
+      :credit_card => {
+        :number => "4111111111111111",
+        :expiration_date => "5/2014",
+        :cvv => "123"
+      },
+      :tr_data => "fake|#{Rack::Utils.build_nested_query(credit_card_tr_data)}"
+    }
+  end
+
+  it "makes a successful transaction request" do
     post '/merchants/fake/transparent_redirect_requests', transaction_data, env
     last_response.status.must_equal 303
 
     location = last_response.headers["Location"]
-    location.must_include tr_data[:redirect_url]
+    location.must_include transaction_tr_data[:redirect_url]
 
     query = Rack::Utils.parse_query(location.split("?").last)
     query["http_status"].must_equal "200"
@@ -77,13 +101,28 @@ describe FakeBraintreeRedirect do
     query["hash"].length.must_equal 40
   end
 
-  it "works with redirect_urls that contain query parmaeters" do
-    new_tr_data = tr_data.clone
+  it "makes a successful credit card request" do
+    post '/merchants/fake/transparent_redirect_requests', credit_card_data, env
+    last_response.status.must_equal 303
+
+    location = last_response.headers["Location"]
+    location = last_response.headers["Location"]
+    location.must_include credit_card_tr_data[:redirect_url]
+
+    query = Rack::Utils.parse_query(location.split("?").last)
+    query["http_status"].must_equal "200"
+    query["id"].must_equal "a_fake_id"
+    query["kind"].must_equal "create_payment_method"
+    query["hash"].length.must_equal 40
+  end
+
+  it "works with redirect_urls that contain query parameters" do
+    new_tr_data = transaction_tr_data.clone
     new_tr_data[:redirect_url] = "http://example.com/braintree?plan_id=1"
     post '/merchants/fake/transparent_redirect_requests', transaction_data(new_tr_data), env
     last_response.status.must_equal 303
     location = last_response.headers["Location"]
-    location.must_include tr_data[:redirect_url]
+    location.must_include transaction_tr_data[:redirect_url]
 
     query = Rack::Utils.parse_query(location.split("?").last)
     query["http_status"].must_equal "200"
