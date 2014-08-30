@@ -7,7 +7,7 @@ class FakeBraintreeRedirect
 
   def call(env)
     request = Rack::Request.new(env)
-    if env['SERVER_NAME'] == "sandbox.braintreegateway.com" && request.post?
+    if env['SERVER_NAME'] == "api.sandbox.braintreegateway.com" && request.post?
       if /merchants\/.*?\/transparent_redirect_requests/.match(env["PATH_INFO"])
         tr_data = request.params["tr_data"]
         tr_data_params = Rack::Utils.parse_nested_query(tr_data.split("|").last)
