@@ -1,5 +1,3 @@
-require 'test_helper'
-
 class DummyApp
   def initialize(app)
     @app = app
